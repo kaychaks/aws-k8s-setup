@@ -204,20 +204,21 @@ data "aws_ami" "ubuntu" {
 }
 
 data "template_file" "master-userdata" {
-    template = "${file("${var.master_setup_data_file}")}"
+  template = "${file("${var.master_setup_data_file}")}"
 
-    vars {
-        k8s_token = "${var.k8s_token}"
-    }
+  vars {
+    k8s_token = "${var.k8s_token}"
+    helm_yml = "${file("${var.helm_rbac_data_file}")}"
+  }
 }
 
 data "template_file" "node-userdata" {
-    template = "${file("${var.node_setup_data_file}")}"
+  template = "${file("${var.node_setup_data_file}")}"
 
-    vars {
-        k8stoken = "${var.k8s_token}"
-        masterIP = "${aws_instance.master.private_ip}"
-    }
+  vars {
+    k8stoken = "${var.k8s_token}"
+    masterIP = "${aws_instance.master.private_ip}"
+  }
 }
 
 resource "aws_instance" "bastion" {
@@ -243,6 +244,18 @@ resource "aws_instance" "master" {
   vpc_security_group_ids = ["${aws_security_group.kubernetes.id}", "${aws_security_group.kubernetes_master.id}"]
   user_data = "${data.template_file.master-userdata.rendered}"
 
+  root_block_device {
+    volume_type = "gp2"
+    volume_size = 10    
+  }
+
+  ebs_block_device {
+    device_name = "/dev/sdh"
+    volume_type = "gp2"
+    volume_size = 50
+    delete_on_termination = false
+  }
+
   tags {
     Name = "master"
   }
@@ -256,6 +269,18 @@ resource "aws_instance" "node1" {
   associate_public_ip_address = true
   vpc_security_group_ids = ["${aws_security_group.kubernetes.id}"]
   user_data = "${data.template_file.node-userdata.rendered}"
+
+  root_block_device {
+    volume_type = "gp2"
+    volume_size = 10    
+  }
+
+  ebs_block_device {
+    device_name = "/dev/sdh"
+    volume_type = "gp2"
+    volume_size = 50
+    delete_on_termination = false
+  }
 
 
   tags {
@@ -271,6 +296,18 @@ resource "aws_instance" "node2" {
   associate_public_ip_address = true
   vpc_security_group_ids = ["${aws_security_group.kubernetes.id}"]
   user_data = "${data.template_file.node-userdata.rendered}"
+
+  root_block_device {
+    volume_type = "gp2"
+    volume_size = 10    
+  }
+
+  ebs_block_device {
+    device_name = "/dev/sdh"
+    volume_type = "gp2"
+    volume_size = 50
+    delete_on_termination = false
+  }
   
   tags {
     Name = "node2"
@@ -285,6 +322,18 @@ resource "aws_instance" "node3" {
   associate_public_ip_address = true
   vpc_security_group_ids = ["${aws_security_group.kubernetes.id}"]
   user_data = "${data.template_file.node-userdata.rendered}"
+
+  root_block_device {
+    volume_type = "gp2"
+    volume_size = 10    
+  }
+
+  ebs_block_device {
+    device_name = "/dev/sdh"
+    volume_type = "gp2"
+    volume_size = 50
+    delete_on_termination = false
+  }
   
   tags {
     Name = "node3"

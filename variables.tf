@@ -42,6 +42,10 @@ variable "node_setup_data_file" {
   default = "nodes_setup.sh"
 }
 
+variable "helm_rbac_data_file" {
+  default = "helm-rbac.yml"
+}
+
 variable "node_port" {
   default = "30001"
 }

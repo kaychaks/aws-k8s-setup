@@ -10,7 +10,7 @@ EOF
 
 apt-get update
 
-apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+apt-get install -y apt-transport-https ca-certificates curl software-properties-common ceph-fs-common ceph-common jq
 
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
 
@@ -54,6 +54,32 @@ echo "[deployment] cluster networking setup....done"
 
 # let master and all nodes get READY
 echo "[deployment] waiting for all nodes to get READY...."
-sleep 30
-echo "[deployment] waiting for all nodes to get READY....hopefully done"
+
+ready_status=$(sudo -u ubuntu -H kubectl get no -o json | jq '[.items[] | .status.conditions | map(select(.type == "Ready").status)] | flatten | all')
+
+until [ "$ready_status" = true ]; do
+    echo "[deployment] ..."
+    ready_status=$(sudo -u ubuntu -H kubectl get no -o json | jq '[.items[] | .status.conditions | map(select(.type == "Ready").status)] | flatten | all')
+done
+
+echo "[deployment] waiting for all nodes to get READY....done"
+
+echo "[deployment] setting up Helm"
+
+sudo -u ubuntu -H mkdir /home/ubuntu/helm-dl
+cd /home/ubuntu
+
+sudo -u ubuntu -H wget https://storage.googleapis.com/kubernetes-helm/helm-v2.6.0-linux-amd64.tar.gz
+sudo -u ubuntu -H tar -zx -C /home/ubuntu/helm-dl -xzf helm-v2.6.0-linux-amd64.tar.gz
+find /home/ubuntu/helm-dl -name helm -type f -exec /bin/mv {} /usr/local/bin \;
+
+echo "${helm_yml}" | sudo -u ubuntu -H tee /home/ubuntu/helm_rbac.yml
+sudo -u ubuntu -H kubectl create -f /home/ubuntu/helm_rbac.yml
+sudo -u ubuntu -H /usr/local/bin/helm init --service-account helm
+
+rm -rf /home/ubuntu/helm-dl /home/ubuntu/*.tar.gz
+
+echo "[deployment] setting up Helm....done"
+
+
 echo "[deployment] cluster deployment tasks complete."
